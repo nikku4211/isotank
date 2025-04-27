@@ -36,6 +36,228 @@ USE_AUDIO = 1
 
 COSINE_OFFS = 64
 
+;bresenham line macro (low part)
+;x16 is clobbered
+;a8 and a16 are also used
+.macro hamline_low x0, y0, x1, y1, col, freezpad
+.scope
+        RW_forced a8i16
+        lda x0 ;x0
+        sta z:ZPAD+freezpad
+        lda x1 ;x1
+        sta z:ZPAD+freezpad+1
+        lda y0 ;y0
+        sta z:ZPAD+freezpad+2
+        lda y1 ;y1
+        sta z:ZPAD+freezpad+3
+        
+        lda z:ZPAD+freezpad+1
+        sub z:ZPAD+freezpad
+        sta ham_dx ;dx = x1 - x0
+      
+        lda z:ZPAD+freezpad+3
+        sub z:ZPAD+freezpad+2
+        sta ham_dy ;dy = y1 - y0
+        
+        lda #1
+        sta ham_yi ;yi = 1
+        
+        lda ham_dy
+        bpl :+ ;if dy < 0
+        lda #$ff
+        sta ham_yi ;yi = -1
+        lda ham_dy 
+        neg ;dy = -dy
+      : sta ham_dy
+      
+        asl
+        sub ham_dx
+        sta ham_dee ;D = (2*dy) - dx
+      
+        lda z:ZPAD+freezpad+2
+        sta ham_y
+        lda z:ZPAD+freezpad
+        sta ham_x
+forloop:
+        RW a16i16 ;insert drawing code here
+        lda ham_x ;an undisbeliever's algorithm for 4bpp planar byte calculation
+        and #$00f8
+        lsr
+        sta z:ZPAD+freezpad+4 ;((xPos & 0xf8) >> 1)
+        
+        lda ham_y-1
+        and #$7f00
+        lsr
+        lsr  ; (yPos << 6) (except here yPos is deliberately loaded in the wrong byte order)
+             ; (to skip having to xba and reduce the amount of bitshifts)
+             ; (yPos << 6) | ((xPos & 0xf8) >> 1)
+        ora z:ZPAD+freezpad+4
+        tax
+        RW a8
+        lda col
+        sta f:pseudobitmap,x ; plot(x0, y0)
+        
+        lda ham_dee ;if D > 0
+        bmi :+
+        lda ham_y
+        add ham_yi ; Y += yi
+        sta ham_y
+        lda ham_dy
+        sub ham_dx
+        asl
+        add ham_dee
+        sta ham_dee ; D += 2 * (dy - dx)
+        bra :++
+      : lda ham_dy ; else
+        asl
+        add ham_dee
+        sta ham_dee ; D += 2*dy
+      : lda ham_x
+        inc
+        sta ham_x
+        cmp z:ZPAD+freezpad+1
+        bne forloop
+nomoreloop:
+.endscope
+.endmacro
+
+;bresenham line macro (high part)
+;x16 is clobbered
+;a8 and a16 are also used
+.macro hamline_high x0, y0, x1, y1, col, freezpad
+.scope
+        RW_forced a8i16
+        lda x0 ;x0
+        sta z:ZPAD+freezpad
+        lda x1 ;x1
+        sta z:ZPAD+freezpad+1
+        lda y0 ;y0
+        sta z:ZPAD+freezpad+2
+        lda y1 ;y1
+        sta z:ZPAD+freezpad+3
+        
+        lda z:ZPAD+freezpad+1
+        sub z:ZPAD+freezpad
+        sta ham_dx ;dx = x1 - x0
+      
+        lda z:ZPAD+freezpad+3
+        sub z:ZPAD+freezpad+2
+        sta ham_dy ;dy = y1 - y0
+        
+        lda #1
+        sta ham_xi ;xi = 1
+        
+        lda ham_dx
+        bpl :+ ;if dx < 0
+        lda #$ff
+        sta ham_xi ;xi = -1
+        lda ham_dx 
+        neg ;xy = -dx
+      : sta ham_dx
+      
+        asl
+        sub ham_dy
+        sta ham_dee ;D = (2*dx) - dy
+      
+        lda z:ZPAD+freezpad+2
+        sta ham_y
+        lda z:ZPAD+freezpad
+        sta ham_x
+forloop:
+        RW a16i16 ;insert drawing code here
+        lda ham_x ;an undisbeliever's algorithm for 4bpp planar byte calculation
+        and #$00f8
+        lsr
+        sta z:ZPAD+freezpad+4 ;((xPos & 0xf8) >> 1)
+        
+        lda ham_y-1
+        and #$7f00
+        lsr
+        lsr  ; (yPos << 6)
+             ; (yPos << 6) | ((xPos & 0xf8) >> 1)
+        ora z:ZPAD+freezpad+4
+        tax
+        RW a8
+        lda col
+        sta f:pseudobitmap,x ; plot(x0, y0)
+        
+        lda ham_dee ;if D > 0
+        bmi :+
+        lda ham_x
+        add ham_xi ; x += xi
+        sta ham_x
+        lda ham_dx
+        sub ham_dy
+        asl
+        add ham_dee
+        sta ham_dee ; D += 2 * (dx - dy)
+        bra :++
+      : lda ham_dx ; else
+        asl
+        add ham_dee
+        sta ham_dee ; D += 2*dx
+      : lda ham_y
+        inc
+        sta ham_y
+        cmp z:ZPAD+freezpad+3
+        bne forloop
+nomoreloop:
+.endscope
+.endmacro
+
+;bresenham line macro (general)
+;x16 is clobbered
+;a8 and a16 are also used
+;x0, x1, y0, and y1 must be 8bit
+.macro hamline x0, y0, x1, y1, col, freezpad
+.scope
+        RW_forced a8i16
+        
+        lda x1
+        sub x0
+        bpl :+
+        neg
+      : sta z:ZPAD+freezpad+1 ;abs(x1 - x0)
+        
+        lda y1
+        sub y0
+        bpl :+
+        neg
+      : sta z:ZPAD+freezpad ;abs(y1 - y0)
+      
+        cmp z:ZPAD+freezpad+1
+        bcc :+ ;if abs(y1 - y0) < abs(x1 - x0)
+        jmp if_abs_greater
+       :
+        
+        lda x0
+        cmp x1
+        beq :+
+        bcs if_x0_greater
+        jmp if_x0_lesser ;if x0 > x1
+      : jmp end_if_abs
+    if_x0_greater:
+        hamline_low {x1}, {y1}, {x0}, {y0}, col, freezpad+2
+        jmp end_if_abs
+    if_x0_lesser:
+        hamline_low {x0}, {y0}, {x1}, {y1}, col, freezpad+2
+        jmp end_if_abs
+if_abs_greater: ;else
+        lda y0
+        cmp y1
+        beq :+
+        bcs if_y0_greater
+        jmp if_y0_lesser ;if y0 > y1
+      : jmp end_if_abs
+    if_y0_greater:
+        hamline_high {x1}, {y1}, {x0}, {y0}, col, freezpad+2
+        jmp end_if_abs
+    if_y0_lesser:
+        hamline_high {x0}, {y0}, {x1}, {y1}, col, freezpad+2
+end_if_abs: ;end if
+.endscope
+.endmacro
+
 Main:
         ;libSFX calls Main after CPU/PPU registers, memory and interrupt handlers are initialized.
         ;load a program to the s-apu and run it
@@ -162,6 +384,8 @@ Main:
         sta f:pseudobitmap,x
         inx
         sta f:pseudobitmap,x
+        
+        hamline #13, #14, #30, #30, #$FF, 0
 
         ;Set VBlank handler
         VBL_set VBlanc
@@ -173,8 +397,6 @@ Main:
 
         ;Turn on vblank interrupt
         VBL_on
-        
-        
 
 :       wai
         bra :-

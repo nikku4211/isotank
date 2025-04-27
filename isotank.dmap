@@ -45,7 +45,7 @@ System.o700:
     NULL              Offs=000000  Size=000000  Align=00001  Fill=0000
     LIBSFX_SMP        Offs=000000  Size=00004A  Align=00001  Fill=0000
 isotank.o:
-    CODE              Offs=000000  Size=000490  Align=00001  Fill=0000
+    CODE              Offs=000000  Size=000760  Align=00001  Fill=0000
     RODATA            Offs=000000  Size=00139C  Align=00100  Fill=0000
     BSS               Offs=000000  Size=000109  Align=00001  Fill=0000
     DATA              Offs=000000  Size=000000  Align=00001  Fill=0000
@@ -65,14 +65,14 @@ DATA                  000000  000000  000000  00001
 NULL                  000000  000000  000000  00001
 ZPAD                  000000  00000F  000010  00001
 LIBSFX_SMP            000002  00004B  00004A  00001
-ZNMI                  000010  00001F  000010  00001
-ZEROPAGE              000020  000057  000038  00001
+ZNMI                  000020  00002F  000010  00001
+ZEROPAGE              000030  000067  000038  00001
 BSS                   000100  000208  000109  00001
 LORAM                 000209  0005CD  0003C5  00001
 HIRAM                 7E2000  7E3FFF  002000  00100
-CODE                  808000  80848F  000490  00001
-RODATA                808490  80982B  00139C  00100
-LIBSFX                80982C  809F13  0006E8  00001
+CODE                  808000  80875F  000760  00001
+RODATA                808760  809AFB  00139C  00100
+LIBSFX                809AFC  80A1E3  0006E8  00001
 HEADER                80FFB0  80FFDF  000030  00001
 VECTORS               80FFE0  80FFFF  000020  00001
 ROM2                  828000  82FFFF  008000  00100
@@ -81,31 +81,31 @@ ROM3                  838000  83C89A  00489B  00001
 
 Exports list by name:
 ---------------------
-BootVector                809AEF RLA    EmptyVBlank               809C17  LA    
-EmptyVector               809BDD RLA    IRQVector                 809BDE RLA    
+BootVector                809DBF RLA    EmptyVBlank               809EE7  LA    
+EmptyVector               809EAD RLA    IRQVector                 809EAE RLA    
 Main                      80830C RLA    RPAD                      000209  LA    
-SFX_CGRAM_memcpy          8098B3 RLA    SFX_INIT_mmio             8098CD RLA    
-SFX_INIT_oam              809996  LA    SFX_PPU_is_ntsc           8099CC  LA    
-SFX_SMP_exec              809C39  LA    SFX_SMP_execspc           809C50  LA    
-SFX_SMP_jmp               809C21  LA    SFX_SMP_ready             809C18  LA    
-SFX_VRAM_memcpy           809897  LA    SFX_VRAM_memset           809870 RLA    
-SFX_WAIT_vbl              8099C1 RLA    SFX_WRAM_memcpy           809858  LA    
-SFX_WRAM_memset           80982C RLA    SFX_inidisp               00002B RLZ    
-SFX_irq_jml               000024  LZ    SFX_joy1cont              000033  LZ    
-SFX_joy1trig              000035  LZ    SFX_joy2cont              000037  LZ    
-SFX_joy2trig              000039  LZ    SFX_mvn                   00002F  LZ    
-SFX_mvn_dst               000030  LZ    SFX_mvn_src               000031  LZ    
-SFX_nmi_jml               000020 RLZ    SFX_nmi_store             000028  LZ    
-SFX_nmitimen              00002C RLZ    SFX_restore_nmi           809C0F  LA    
-SFX_stash_nmi             809BFD  LA    SFX_tick                  00002D  LZ    
+SFX_CGRAM_memcpy          809B83 RLA    SFX_INIT_mmio             809B9D RLA    
+SFX_INIT_oam              809C66  LA    SFX_PPU_is_ntsc           809C9C  LA    
+SFX_SMP_exec              809F09  LA    SFX_SMP_execspc           809F20  LA    
+SFX_SMP_jmp               809EF1  LA    SFX_SMP_ready             809EE8  LA    
+SFX_VRAM_memcpy           809B67  LA    SFX_VRAM_memset           809B40 RLA    
+SFX_WAIT_vbl              809C91 RLA    SFX_WRAM_memcpy           809B28  LA    
+SFX_WRAM_memset           809AFC RLA    SFX_inidisp               00003B RLZ    
+SFX_irq_jml               000034  LZ    SFX_joy1cont              000043  LZ    
+SFX_joy1trig              000045  LZ    SFX_joy2cont              000047  LZ    
+SFX_joy2trig              000049  LZ    SFX_mvn                   00003F  LZ    
+SFX_mvn_dst               000040  LZ    SFX_mvn_src               000041  LZ    
+SFX_nmi_jml               000030 RLZ    SFX_nmi_store             000038  LZ    
+SFX_nmitimen              00003C RLZ    SFX_restore_nmi           809EDF  LA    
+SFX_stash_nmi             809ECD  LA    SFX_tick                  00003D  LZ    
 SMP_Burst                 000002 RLA    SMP_Burst_END             00002D RLA    
 SMP_SetDSP                00002D RLA    SMP_SetDSP_END            00004C RLA    
-VBlankVector              809B80 RLA    ZNMI                      000010  LZ    
+VBlankVector              809E50 RLA    ZNMI                      000020  LZ    
 ZPAD                      000000 RLZ    __EXRAM_FILEOFFS__        000000  EA    
 __EXRAM_LAST__            7F0000  LA    __EXRAM_SIZE__            010000  EA    
 __EXRAM_START__           7F0000  LA    __HIRAM_FILEOFFS__        000000  EA    
 __HIRAM_LAST__            7E4000  LA    __HIRAM_SIZE__            00E000  EA    
-__HIRAM_START__           7E2000  LA    __LIBSFX_SMP_LOAD__       809F14 RLA    
+__HIRAM_START__           7E2000  LA    __LIBSFX_SMP_LOAD__       80A1E4 RLA    
 __LIBSFX_SMP_RUN__        000002  LA    __LIBSFX_SMP_SIZE__       00004A  EA    
 __LORAM_FILEOFFS__        000000  EA    __LORAM_LAST__            0005CE  LA    
 __LORAM_SIZE__            001E00  EA    __LORAM_START__           000100  LA    
@@ -113,12 +113,12 @@ __RPADSIZE__              000100  EA    __STACKSIZE__             000100 REA
 __STACK_FILEOFFS__        000000  EA    __STACK_LAST__            001F00  LA    
 __STACK_SIZE__            000100  EA    __STACK_START__           001F00  LA    
 __ZNMISIZE__              000010 REA    __ZNMI_FILEOFFS__         000000  EA    
-__ZNMI_LAST__             000020  LA    __ZNMI_SIZE__             000010  EA    
-__ZNMI_START__            000010  LA    __ZPADSIZE__              000010 REA    
+__ZNMI_LAST__             000030  LA    __ZNMI_SIZE__             000010  EA    
+__ZNMI_START__            000020  LA    __ZPADSIZE__              000020 REA    
 __ZPAD_FILEOFFS__         000000  EA    __ZPAD_LAST__             000010  LA    
-__ZPAD_SIZE__             000010  EA    __ZPAD_START__            000000  LA    
-__ZPAGE_FILEOFFS__        000000  EA    __ZPAGE_LAST__            000058  LA    
-__ZPAGE_SIZE__            0000E0  EA    __ZPAGE_START__           000020  LA    
+__ZPAD_SIZE__             000020  EA    __ZPAD_START__            000000  LA    
+__ZPAGE_FILEOFFS__        000000  EA    __ZPAGE_LAST__            000068  LA    
+__ZPAGE_SIZE__            0000D0  EA    __ZPAGE_START__           000030  LA    
 spcBoot                   808000  LA    spcClone                  808302  LA    
 spcEffect                 8082E5  LA    spcFadeModuleVolume       8082DB  LA    
 spcFlush                  80822F  LA    spcFxParams               8082F8  LA    
@@ -132,27 +132,27 @@ spcStop                   808295  LA
 
 Exports list by value:
 ----------------------
-__ZNMI_FILEOFFS__         000000  EA    __ZPAD_START__            000000  LA    
+__ZNMI_FILEOFFS__         000000  EA    __ZPAGE_FILEOFFS__        000000  EA    
 __HIRAM_FILEOFFS__        000000  EA    __STACK_FILEOFFS__        000000  EA    
 __LORAM_FILEOFFS__        000000  EA    __EXRAM_FILEOFFS__        000000  EA    
-ZPAD                      000000 RLZ    __ZPAGE_FILEOFFS__        000000  EA    
-__ZPAD_FILEOFFS__         000000  EA    __LIBSFX_SMP_RUN__        000002  LA    
-SMP_Burst                 000002 RLA    ZNMI                      000010  LZ    
-__ZNMI_START__            000010  LA    __ZPAD_SIZE__             000010  EA    
-__ZPAD_LAST__             000010  LA    __ZNMI_SIZE__             000010  EA    
-__ZNMISIZE__              000010 REA    __ZPADSIZE__              000010 REA    
-__ZPAGE_START__           000020  LA    SFX_nmi_jml               000020 RLZ    
-__ZNMI_LAST__             000020  LA    SFX_irq_jml               000024  LZ    
-SFX_nmi_store             000028  LZ    SFX_inidisp               00002B RLZ    
-SFX_nmitimen              00002C RLZ    SFX_tick                  00002D  LZ    
+ZPAD                      000000 RLZ    __ZPAD_START__            000000  LA    
+__ZPAD_FILEOFFS__         000000  EA    SMP_Burst                 000002 RLA    
+__LIBSFX_SMP_RUN__        000002  LA    __ZPAD_LAST__             000010  LA    
+__ZNMI_SIZE__             000010  EA    __ZNMISIZE__              000010 REA    
+ZNMI                      000020  LZ    __ZNMI_START__            000020  LA    
+__ZPADSIZE__              000020 REA    __ZPAD_SIZE__             000020  EA    
 SMP_SetDSP                00002D RLA    SMP_Burst_END             00002D RLA    
-SFX_mvn                   00002F  LZ    SFX_mvn_dst               000030  LZ    
-SFX_mvn_src               000031  LZ    SFX_joy1cont              000033  LZ    
-SFX_joy1trig              000035  LZ    SFX_joy2cont              000037  LZ    
-SFX_joy2trig              000039  LZ    __LIBSFX_SMP_SIZE__       00004A  EA    
-SMP_SetDSP_END            00004C RLA    __ZPAGE_LAST__            000058  LA    
-__ZPAGE_SIZE__            0000E0  EA    __RPADSIZE__              000100  EA    
-__LORAM_START__           000100  LA    __STACK_SIZE__            000100  EA    
+__ZNMI_LAST__             000030  LA    SFX_nmi_jml               000030 RLZ    
+__ZPAGE_START__           000030  LA    SFX_irq_jml               000034  LZ    
+SFX_nmi_store             000038  LZ    SFX_inidisp               00003B RLZ    
+SFX_nmitimen              00003C RLZ    SFX_tick                  00003D  LZ    
+SFX_mvn                   00003F  LZ    SFX_mvn_dst               000040  LZ    
+SFX_mvn_src               000041  LZ    SFX_joy1cont              000043  LZ    
+SFX_joy1trig              000045  LZ    SFX_joy2cont              000047  LZ    
+SFX_joy2trig              000049  LZ    __LIBSFX_SMP_SIZE__       00004A  EA    
+SMP_SetDSP_END            00004C RLA    __ZPAGE_LAST__            000068  LA    
+__ZPAGE_SIZE__            0000D0  EA    __STACK_SIZE__            000100  EA    
+__LORAM_START__           000100  LA    __RPADSIZE__              000100  EA    
 __STACKSIZE__             000100 REA    RPAD                      000209  LA    
 __LORAM_LAST__            0005CE  LA    __LORAM_SIZE__            001E00  EA    
 __STACK_START__           001F00  LA    __STACK_LAST__            001F00  LA    
@@ -168,17 +168,17 @@ spcGetCues                8082B8  LA    spcGlobalVolume           8082CD  LA
 spcSetModuleVolume        8082D4  LA    spcFadeModuleVolume       8082DB  LA    
 spcEffect                 8082E5  LA    spcFxParams               8082F8  LA    
 spcClone                  808302  LA    Main                      80830C RLA    
-SFX_WRAM_memset           80982C RLA    SFX_WRAM_memcpy           809858  LA    
-SFX_VRAM_memset           809870 RLA    SFX_VRAM_memcpy           809897  LA    
-SFX_CGRAM_memcpy          8098B3 RLA    SFX_INIT_mmio             8098CD RLA    
-SFX_INIT_oam              809996  LA    SFX_WAIT_vbl              8099C1 RLA    
-SFX_PPU_is_ntsc           8099CC  LA    BootVector                809AEF RLA    
-VBlankVector              809B80 RLA    EmptyVector               809BDD RLA    
-IRQVector                 809BDE RLA    SFX_stash_nmi             809BFD  LA    
-SFX_restore_nmi           809C0F  LA    EmptyVBlank               809C17  LA    
-SFX_SMP_ready             809C18  LA    SFX_SMP_jmp               809C21  LA    
-SFX_SMP_exec              809C39  LA    SFX_SMP_execspc           809C50  LA    
-__LIBSFX_SMP_LOAD__       809F14 RLA    
+SFX_WRAM_memset           809AFC RLA    SFX_WRAM_memcpy           809B28  LA    
+SFX_VRAM_memset           809B40 RLA    SFX_VRAM_memcpy           809B67  LA    
+SFX_CGRAM_memcpy          809B83 RLA    SFX_INIT_mmio             809B9D RLA    
+SFX_INIT_oam              809C66  LA    SFX_WAIT_vbl              809C91 RLA    
+SFX_PPU_is_ntsc           809C9C  LA    BootVector                809DBF RLA    
+VBlankVector              809E50 RLA    EmptyVector               809EAD RLA    
+IRQVector                 809EAE RLA    SFX_stash_nmi             809ECD  LA    
+SFX_restore_nmi           809EDF  LA    EmptyVBlank               809EE7  LA    
+SFX_SMP_ready             809EE8  LA    SFX_SMP_jmp               809EF1  LA    
+SFX_SMP_exec              809F09  LA    SFX_SMP_execspc           809F20  LA    
+__LIBSFX_SMP_LOAD__       80A1E4 RLA    
 
 
 Imports list:
@@ -261,6 +261,7 @@ VBlankVector (Runtime.o):
     Header.o                  ../libSFX/include/CPU/../CPU_Runtime.i:72
 ZNMI (Runtime.o):
 ZPAD (Runtime.o):
+    isotank.o                 ../libSFX/include/CPU_Runtime.i:76
     SMP.o                     ../libSFX/include/CPU/../CPU_Runtime.i:76
     Library.o                 ../libSFX/include/CPU/../CPU_Runtime.i:76
 __EXRAM_FILEOFFS__ ([linker generated]):
@@ -272,7 +273,7 @@ __HIRAM_LAST__ ([linker generated]):
 __HIRAM_SIZE__ ([linker generated]):
 __HIRAM_START__ ([linker generated]):
 __LIBSFX_SMP_LOAD__ ([linker generated]):
-    isotank.o                 src/isotank.s:300
+    isotank.o                 src/isotank.s:522
     SMP.o                     ../libSFX/include/CPU/SMP.s:477
     Runtime.o                 ../libSFX/include/CPU/Runtime.s:237
     Library.o                 ../libSFX/include/CPU/Library.s:353
