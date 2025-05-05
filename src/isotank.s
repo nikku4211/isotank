@@ -1,6 +1,7 @@
 .include "libSFX.i"
 .include "sinlut.i"
 .include "idlut.i"
+.include "plalut.i"
 .include "qubo.i"
 
 ;SNESmod audio code
@@ -32,7 +33,7 @@ VERTEX_COUNT = 8
 EDGE_COUNT = 12
 
 ;toggle music
-USE_AUDIO = 1
+USE_AUDIO = 0
 
 COSINE_OFFS = 64
 
@@ -79,23 +80,16 @@ COSINE_OFFS = 64
         lda z:ZPAD+freezpad
         sta ham_x
 forloop:
-        RW a16i16 ;insert drawing code here
-        lda ham_x ;an undisbeliever's algorithm for 4bpp planar byte calculation
-        and #$00f8
-        lsr
-        sta z:ZPAD+freezpad+4 ;((xPos & 0xf8) >> 1)
-        
+        RW a16i16
         lda ham_y-1
         and #$7f00
         lsr
-        lsr  ; (yPos << 6) (except here yPos is deliberately loaded in the wrong byte order)
-             ; (to skip having to xba and reduce the amount of bitshifts)
-             ; (yPos << 6) | ((xPos & 0xf8) >> 1)
-        ora z:ZPAD+freezpad+4
-        tax
+        ora ham_x
+        lsr
+        planarplot 4
         RW a8
-        lda col
-        sta f:pseudobitmap,x ; plot(x0, y0)
+        ; lda col
+        ; sta f:pseudobitmap,x ; plot(x0, y0)
         
         lda ham_dee ;if D > 0
         bmi :+
@@ -164,22 +158,16 @@ nomoreloop:
         lda z:ZPAD+freezpad
         sta ham_x
 forloop:
-        RW a16i16 ;insert drawing code here
-        lda ham_x ;an undisbeliever's algorithm for 4bpp planar byte calculation
-        and #$00f8
-        lsr
-        sta z:ZPAD+freezpad+4 ;((xPos & 0xf8) >> 1)
-        
+        RW a16i16
         lda ham_y-1
         and #$7f00
         lsr
-        lsr  ; (yPos << 6)
-             ; (yPos << 6) | ((xPos & 0xf8) >> 1)
-        ora z:ZPAD+freezpad+4
-        tax
+        ora ham_x
+        lsr
+        planarplot 4
         RW a8
-        lda col
-        sta f:pseudobitmap,x ; plot(x0, y0)
+        ; lda col
+        ; sta f:pseudobitmap,x ; plot(x0, y0)
         
         lda ham_dee ;if D > 0
         bmi :+
@@ -255,6 +243,41 @@ if_abs_greater: ;else
     if_y0_lesser:
         hamline_high {x0}, {y0}, {x1}, {y1}, col, freezpad+2
 end_if_abs: ;end if
+.endscope
+.endmacro
+
+;planar pixel plotting macro because it's annoying
+;a16 input is the position index
+;stack IS used here, you need one byte of stack left
+;x16 and a16 are clobbered
+.macro planarplot freezpad
+.scope
+        ;we are targetting 2bpp planar
+        ;save the position index for later
+        sta z:ZPAD+freezpad
+        
+        ;get the first 3 bits of the x position
+        and #%00000111
+        tax
+        lda plalut,x ;load a byte from the lut 
+                      ;with the bit in the right 
+                      ;position within the byte
+        
+        and #$00ff ;we only want the lower 8 bits thank you
+        
+        ;save the lut byte for later
+        pha
+        ;put the saved position index into x
+        lda z:ZPAD+freezpad
+        and #$fff8
+        tax
+        ;pull the lut byte
+        pla
+        ;and use this to index the planar pseudobitmap
+        ora f:planarpb,x
+        ;lda #$ff00
+        sta f:planarpb,x
+
 .endscope
 .endmacro
 
@@ -357,13 +380,12 @@ Main:
             cpx #513
             bne sweepspritedown
             
-        ldx #4
-        lda #%00110000
-        
-        sta shadow_oam-1, x
-        dex
+        ldx #16
         
         tankhardrend:
+            lda #%00110000            
+            sta shadow_oam-1, x
+            dex
             stz shadow_oam-1, x
             dex
             lda #24
@@ -372,8 +394,48 @@ Main:
             lda #24
             sta shadow_oam-1, x
             dex
+            
+            lda #%00110000            
+            sta shadow_oam-1, x
+            dex
+            lda #$04
+            sta shadow_oam-1, x
+            dex
+            lda #24
+            sta shadow_oam-1, x
+            dex
+            lda #56
+            sta shadow_oam-1, x
+            dex
+            
+            lda #%00110000            
+            sta shadow_oam-1, x
+            dex
+            lda #$40
+            sta shadow_oam-1, x
+            dex
+            lda #56
+            sta shadow_oam-1, x
+            dex
+            lda #24
+            sta shadow_oam-1, x
+            dex
+            
+            lda #%00110000            
+            sta shadow_oam-1, x
+            dex
+            lda #$44
+            sta shadow_oam-1, x
+            dex
+            lda #56
+            sta shadow_oam-1, x
+            dex
+            lda #56
+            sta shadow_oam-1, x
+            dex
+            
             ldx #512
-            lda #%00000010
+            lda #%10101010
             sta shadow_oam, x
         
         lda #%01100010
@@ -381,11 +443,11 @@ Main:
         
         ldx #$0200
         lda #$ff
-        sta f:pseudobitmap,x
+        sta f:planarpb,x
         inx
-        sta f:pseudobitmap,x
+        sta f:planarpb,x
         
-        hamline #13, #14, #30, #30, #$FF, 0
+        hamline #8, #8, #64, #32, #$01, 0
 
         ;Set VBlank handler
         VBL_set VBlanc
@@ -419,14 +481,14 @@ VBlanc:
         sta $4310
         lda #$18
         sta $4311
-        lda #.bankbyte(pseudobitmap)
+        lda #.bankbyte(planarpb)
         sta $4314
-        ldx #.loword(pseudobitmap)
+        ldx #.loword(planarpb)
         stx $4312
-        ldx #2048
+        ldx #4096
         stx $4315
         
-        lda #%10000000
+        lda #%10000100
         sta $2115
         
         ldx #$4000
@@ -461,6 +523,10 @@ SNESMOD_SPC_END:
 pseudobitmap:
 .align $100
 .res 8192 ;formerly 16384
+
+planarpb:
+.align $100
+.res 8192
 
 .segment "ZEROPAGE"
 threeddoneflag: .res 1

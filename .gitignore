@@ -1,4 +1,5 @@
 /.build
+/.build_libsfx
 isotank.sfc
 isotank.dmap
 isotank.dbg
