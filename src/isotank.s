@@ -82,11 +82,10 @@ COSINE_OFFS = 64
 forloop:
         RW a16i16
         lda ham_y-1
-        and #$7f00
+        and #$ff00
         lsr
         ora ham_x
-        lsr
-        planarplot 4
+        planarplot freezpad+4
         RW a8
         ; lda col
         ; sta f:pseudobitmap,x ; plot(x0, y0)
@@ -160,11 +159,10 @@ nomoreloop:
 forloop:
         RW a16i16
         lda ham_y-1
-        and #$7f00
+        and #$ff00
         lsr
         ora ham_x
-        lsr
-        planarplot 4
+        planarplot freezpad+4
         RW a8
         ; lda col
         ; sta f:pseudobitmap,x ; plot(x0, y0)
@@ -269,7 +267,8 @@ end_if_abs: ;end if
         pha
         ;put the saved position index into x
         lda z:ZPAD+freezpad
-        and #$fff8
+        lsr
+        and #$fffc
         tax
         ;pull the lut byte
         pla
@@ -441,7 +440,7 @@ Main:
         lda #%01100010
         sta $2101
         
-        ldx #$0200
+        ldx #$0204
         lda #$ff
         sta f:planarpb,x
         inx
