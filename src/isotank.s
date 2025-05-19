@@ -37,6 +37,110 @@ USE_AUDIO = 0
 
 COSINE_OFFS = 64
 
+;8-bit by 8-bit hardware multiplication
+;uses a8
+;a16 output: mult product
+.macro mult_s8_s8 cand1, cand2
+        RW a8
+        
+        lda #0
+        pha
+        lda cand1   ;all i have left is the stack
+        sta WRMPYA
+        cmp #$80
+        bcc :+
+          pla
+          sbc cand2
+          pha
+      : lda cand2
+        sta WRMPYB
+        cmp #$80
+        bcc :+
+          pla
+          sbc cand1
+          pha
+      : pla
+        clc
+        adc RDMPYH
+        RW a16
+        lda RDMPYL ;16-bit result
+.endmacro
+
+; 8.8 by 8.8 fixed point multiplication
+; 8.8 fixed point result
+; uses a8 and a16
+; 
+; a16 is where the result is stored
+; x16 and y16 are free
+.macro mult_8p8_8p8 cand1, cand2, freezpad, cand1h, cand2h
+        RW a8
+        
+        lda cand1 ;p1.l by p2.l
+        sta WRMPYA
+        lda cand2
+        sta WRMPYB
+        nop
+        nop
+        nop
+        lda RDMPYH
+        sta z:ZPAD+freezpad
+        bpl :+
+        lda #$ff
+        bra :++
+      : lda #0
+      : sta z:ZPAD+freezpad+1
+        
+        lda #0
+        pha
+        lda cand1
+        sta WRMPYA
+        lda cand2h ;p1.l by p2.h
+        sta WRMPYB
+        cmp #$80
+        bcc :+
+          pla
+          sbc cand1
+          pha
+      : pla
+        add RDMPYH
+        sta z:ZPAD+freezpad+3
+        lda RDMPYL
+        sta z:ZPAD+freezpad+2
+        
+        lda #0
+        pha
+        lda cand1h
+        sta WRMPYA
+        cmp #$80
+        bcc :+
+          pla
+          sbc cand2
+          pha
+      : lda cand2 ;p1.h by p2.l
+        sta WRMPYB
+        nop
+        nop
+        nop
+        pla
+        add RDMPYH
+        sta z:ZPAD+freezpad+5
+        lda RDMPYL
+        sta z:ZPAD+freezpad+4
+        
+        lda cand2h ;p1.h by p2.h
+        sta WRMPYB
+        nop
+        nop
+        nop
+        RW a16
+        lda RDMPYL
+        xba
+        and #$ff00
+        add z:ZPAD+freezpad+4
+        adc z:ZPAD+freezpad+2
+        adc z:ZPAD+freezpad
+.endmacro
+
 ;bresenham line macro (low part)
 ;x16 is clobbered
 ;a8 and a16 are also used
@@ -440,13 +544,256 @@ Main:
         lda #%01100010
         sta $2101
         
-        ldx #$0204
-        lda #$ff
-        sta f:planarpb,x
-        inx
-        sta f:planarpb,x
+        ; ldx #$0204
+        ; lda #$ff
+        ; sta f:planarpb,x
+        ; inx
+        ; sta f:planarpb,x
         
-        hamline #8, #8, #64, #32, #$01, 0
+        ;example of how to use hamline:
+        ;hamline #8, #8, #50, #50, #$01, 0
+        ;make sure col is #$01
+        
+        lda #INIT_SX ;initialise rotations
+        sta z:matrix_sx
+        lda #INIT_SY
+        sta z:matrix_sy
+        lda #INIT_SZ
+        sta z:matrix_sz
+        
+polyrotation:
+polyrotationsetup:
+        RW i8
+        
+        ; x-
+        ldx z:matrix_sx ;angle A
+        ldy z:matrix_sy ;angle B
+        
+        mult_s8_s8 {sinlut+COSINE_OFFS,x}, {sinlut+COSINE_OFFS,y}, 6 ;xx = [cos(A)cos(B)]
+        sta matrix_xx
+      
+        mult_s8_s8 {sinlut,x}, {sinlut+COSINE_OFFS,y}, 6 ;xy = [sin(A)cos(B)]
+        sta matrix_xy
+      
+        ;xz = [sin(B)]
+        RW a8
+        lda sinlut,y
+        sta matrix_xz
+        stz matrix_xz
+        
+; y-
+        ldy z:matrix_sz ;angle C
+        
+        mult_s8_s8 {sinlut,x}, {sinlut+COSINE_OFFS,y}, 6 ;yx = [sin(A)cos(C)
+        sta z:ZPAD
+      
+        ldy z:matrix_sy
+        mult_s8_s8 {sinlut+COSINE_OFFS,x}, {sinlut,y}, 6     ;+ cos(A)sin(B)sin(C)]
+        sta z:ZPAD+2
+        
+        ldy z:matrix_sz
+        mult_s8_s8 z:ZPAD+2, {sinlut,y}, 6
+        add z:ZPAD
+        sta matrix_yx
+        
+        mult_s8_s8 {sinlut+COSINE_OFFS,x}, {sinlut+COSINE_OFFS,y}, 6 ;yy = [-cos(A)cos(C)
+        sta z:ZPAD
+        
+        ldy z:matrix_sy                                                                                  ;+ sin(A)sin(B)sin(C)]
+        mult_s8_s8 {sinlut,x}, {sinlut,y}, 6
+        sta z:ZPAD+2
+        
+        ldy z:matrix_sz
+        mult_s8_s8 z:ZPAD+2, {sinlut,y}, 6
+        sub z:ZPAD
+        sta matrix_yy
+        
+        ldx z:matrix_sy
+        mult_s8_s8 {sinlut+COSINE_OFFS,x}, {sinlut,y}, 6    ;yz = [-cos(B)sin(C)]
+        neg
+        sta matrix_yz
+        
+; z-
+        ldx z:matrix_sx
+        mult_s8_s8 {sinlut,x}, {sinlut,y}, 6 ;zx = [sin(A)sin(C)
+        sta z:ZPAD
+      
+        ldy z:matrix_sy
+        mult_s8_s8 {sinlut+COSINE_OFFS,x}, {sinlut,y}, 6      ;- cos(A)sin(B)cos(C)]
+        sta z:ZPAD+2
+        
+        ldy z:matrix_sz
+        mult_s8_s8 z:ZPAD+2, {sinlut+COSINE_OFFS,y}, 6
+        sta z:ZPAD+2
+        
+        lda z:ZPAD
+        sub z:ZPAD+2
+        sta matrix_zx
+      
+        mult_s8_s8 {sinlut+COSINE_OFFS,x}, {sinlut,y}, 6    ;zy = [-cos(A)sin(C)
+        neg
+        sta z:ZPAD
+      
+        ldy z:matrix_sy
+        mult_s8_s8 {sinlut,x}, {sinlut,y}, 6     ;- sin(A)sin(B)cos(C)]
+        sta z:ZPAD+2
+        
+        ldy z:matrix_sz
+        mult_s8_s8 z:ZPAD+2, {sinlut+COSINE_OFFS,y}, 6
+        neg
+        add z:ZPAD
+        sta matrix_zy
+        
+        ldx z:matrix_sy
+        mult_s8_s8 {sinlut+COSINE_OFFS,x}, {sinlut+COSINE_OFFS,y}, 6  ;zz = [cos(B)cos(C)]
+        sta matrix_zz
+
+; ?x*?y
+        mult_s8_s8 matrix_xx+1, matrix_xy+1, 6
+        sta matrix_xx_xy
+        
+        mult_s8_s8 matrix_yx+1, matrix_yy+1, 6
+        sta matrix_yx_yy
+        
+        mult_s8_s8 matrix_zx+1, matrix_zy+1, 6
+        sta matrix_zx_zy
+        
+        RW i16
+        ldy #0
+uopolyrotationloop:
+        ;rember pemdas:
+        ;
+        ;parentheses first
+        ;multiplication next
+        ;then both adding and subtracting together
+        ;
+        mult_s8_s8 {a:qubo_x,y}, {a:qubo_y,y}, 0 ;but before all that, let's precalc x*y
+        sta matrix_x_m_y ;not to be confused with matrix_xy
+
+; x'   
+        ;okay, now Please Excuse My Dear Aunt Sally
+        ;(xx + y)(xy + x) + z*xz - (xx_xy + x_y)
+        RW a8
+        lda matrix_xx ;(xx + y)
+        add a:qubo_y,y
+        sta z:ZPAD
+        lda matrix_xy ;(xy + x)
+        add a:qubo_x,y
+        sta z:ZPAD+2
+        lda matrix_xx_xy ;(xx_xy + x_y)
+        add matrix_x_m_y
+        sta z:ZPAD+4
+        
+        mult_s8_s8 {a:qubo_z,y}, matrix_xz, 6 ;z*xz
+        sta matrix_z_xz
+        
+        mult_s8_s8 z:ZPAD, z:ZPAD+2, 6 ;(xx + y)(xy + x)
+        sta z:ZPAD+12
+        
+        lda z:ZPAD+12 ;(xx + y)(xy + x) + z*xz - (xx_xy + x_y)
+        add matrix_z_xz
+        sub z:ZPAD+4
+        RW a8
+        sta matrix_pointx,y
+        
+; y'
+        ;(yx + y)(yy + x) + z*yz - (yx_yy + x_y)
+        RW a8
+        lda matrix_yx ;(yx + y)
+        add a:qubo_y,y
+        sta z:ZPAD
+        lda matrix_yy ;(yy + x)
+        add a:qubo_x,y
+        sta z:ZPAD+2
+        lda matrix_yx_yy ;(yx_yy + x_y)
+        add matrix_x_m_y
+        sta z:ZPAD+4
+        
+        mult_s8_s8 {a:qubo_z,y}, matrix_yz, 6 ;z*yz
+        sta matrix_z_yz
+        
+        mult_s8_s8 z:ZPAD, z:ZPAD+2, 6 ;(yx + y)(yy + x)
+        sta z:ZPAD+12
+        
+        lda z:ZPAD+12 ;(yx + y)(yy + x) + z*yz - (yx_yy + x_y)
+        add matrix_z_yz
+        sub z:ZPAD+4
+        RW a8
+        sta matrix_pointy,y
+        
+; z'
+        ;(zx + y)(zy + x) + z*zz - (zx_zy + x_y)
+        RW a8
+        lda matrix_zx ;(zx + y)
+        add a:qubo_y,y
+        sta z:ZPAD
+        lda matrix_zy ;(zy + x)
+        add a:qubo_x,y
+        sta z:ZPAD+2
+        lda matrix_zx_zy ;(zx_zy + x_y)
+        add matrix_x_m_y
+        sta z:ZPAD+4
+        
+        mult_s8_s8 {a:qubo_z,y}, matrix_zz, 6 ;z*zz
+        sta matrix_z_zz
+        
+        mult_s8_s8 z:ZPAD, z:ZPAD+2, 6 ;(zx + y)(zy + x)
+        sta z:ZPAD+12
+        
+        lda z:ZPAD+12 ;(zx + y)(zy + x) + z*zz - (zx_zy + x_y)
+        add matrix_z_zz
+        sub z:ZPAD+4
+        RW a8
+        sta matrix_pointz,y
+        
+donepolyrotation:
+        iny
+        cpy #VERTEX_COUNT
+        beq polyprojection
+        jmp uopolyrotationloop
+        
+polyprojection:
+        RW a8i16
+        ldy #0
+@poprloop:
+        lda a:matrix_pointx,y
+        sta a:pointxbyte,y
+        
+        lda a:matrix_pointy,y
+        sta a:pointybyte,y
+@nextloop:
+        iny
+        cpy #VERTEX_COUNT
+        beq drawedge
+        jmp @poprloop
+        
+drawedge:
+        ldy #0
+edgeloop:
+@newline:
+        RW a16
+        lda a:qubo_edge1,y ;point 1 - x and y
+        and #$00ff
+        tax
+        RW a8
+        lda a:pointxbyte,x
+        sta z:ZPAD
+        lda a:pointybyte,x
+        sta z:ZPAD+1
+        
+        RW a16
+        lda a:qubo_edge2,y ;point 2 - x and y
+        and #$00ff
+        tax
+        RW a8
+        hamline z:ZPAD, z:ZPAD+1, {a:pointxbyte,x}, {a:pointybyte,x}, #$01, 2
+@nextloop:
+        iny
+        cpy #EDGE_COUNT
+        beq threeddone
+        jmp edgeloop
+        
+threeddone:
 
         ;Set VBlank handler
         VBL_set VBlanc
@@ -546,10 +893,10 @@ matrix_sz: .res 1
 .segment "LORAM"
 shadow_oam: .res 512+32
 
-pointxword: .res (VERTEX_COUNT * 2)
-pointyword: .res (VERTEX_COUNT * 2)
-oldpointxword: .res (VERTEX_COUNT * 2)
-oldpointyword: .res (VERTEX_COUNT * 2)
+pointxbyte: .res (VERTEX_COUNT)
+pointybyte: .res (VERTEX_COUNT)
+oldpointxbyte: .res (VERTEX_COUNT)
+oldpointybyte: .res (VERTEX_COUNT)
 
 matrix_xx: .res 2
 matrix_xy: .res 2
